@@ -1,4 +1,5 @@
 import { Upload, Search, MoreHorizontal } from "lucide-react";
+import UploadDataset from "@/components/datasets/UploadDataset";
 
 const datasets = [
   {
@@ -79,6 +80,8 @@ export default function DatasetsPage() {
         </div>
 
       </div>
+
+      <UploadDataset />
 
       {/* Dataset Table */}
       <div className="mt-8 rounded-xl border bg-white">
