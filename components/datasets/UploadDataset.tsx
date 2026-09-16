@@ -3,12 +3,15 @@
 
 import { useState } from "react";
 import { Upload, FileText, X } from "lucide-react";
+import Papa from "papaparse";
 
-type PreviewRow = string[];
+type CsvRow = string[];
 
 export default function UploadDataset() {
   const [fileName, setFileName] = useState("");
-  const [previewRows, setPreviewRows] = useState<PreviewRow[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [previewRows, setPreviewRows] = useState<CsvRow[]>([]);
+  const [totalRecords, setTotalRecords] = useState(0);
   const [error, setError] = useState("");
   const [isUploaded, setIsUploaded] = useState(false);
 
@@ -18,7 +21,9 @@ export default function UploadDataset() {
     const file = event.target.files?.[0];
 
     setError("");
+    setHeaders([]);
     setPreviewRows([]);
+    setTotalRecords(0);
     setFileName("");
     setIsUploaded(false);
 
@@ -26,7 +31,7 @@ export default function UploadDataset() {
       return;
     }
 
-    // Validate file type
+    // Validate file extension
     if (!file.name.toLowerCase().endsWith(".csv")) {
       setError("Please upload a CSV file.");
       return;
@@ -40,60 +45,71 @@ export default function UploadDataset() {
       return;
     }
 
-    setFileName(file.name);
+    Papa.parse<string[]>(file, {
+      skipEmptyLines: true,
 
-    const reader = new FileReader();
+      complete: (results) => {
+        const rows = results.data as string[][];
 
-    reader.onload = (event) => {
-      const text = event.target?.result;
+        if (rows.length < 2) {
+          setError(
+            "CSV must contain a header and at least one data row."
+          );
+          return;
+        }
 
-      if (typeof text !== "string") {
-        setError("Unable to read the file.");
-        return;
-      }
+        const csvHeaders = rows[0].map((header) =>
+          header.trim()
+        );
 
-      const lines = text
-        .split(/\r?\n/)
-        .filter((line) => line.trim() !== "");
+        if (
+          csvHeaders.length === 0 ||
+          csvHeaders.some((header) => header === "")
+        ) {
+          setError("CSV headers cannot be empty.");
+          return;
+        }
 
-      if (lines.length === 0) {
-        setError("The CSV file is empty.");
-        return;
-      }
+        const dataRows = rows.slice(1);
 
-      // Display the first 6 rows, including headers
-      const rows = lines
-        .slice(0, 6)
-        .map((line) => line.split(","));
+        setFileName(file.name);
+        setHeaders(csvHeaders);
+        setTotalRecords(dataRows.length);
 
-      setPreviewRows(rows);
-      setIsUploaded(true);
-    };
+        // Show only the first 10 records
+        setPreviewRows(dataRows.slice(0, 10));
 
-    reader.onerror = () => {
-      setError("An error occurred while reading the file.");
-    };
+        setIsUploaded(true);
+      },
 
-    reader.readAsText(file);
+      error: () => {
+        setError("Unable to parse the CSV file.");
+      },
+    });
   }
 
   function handleRemove() {
     setFileName("");
+    setHeaders([]);
     setPreviewRows([]);
+    setTotalRecords(0);
     setError("");
     setIsUploaded(false);
   }
 
   return (
     <div className="mt-8 rounded-xl border bg-white p-6">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
+
         <div>
           <h2 className="text-lg font-semibold">
             Upload Dataset
           </h2>
 
           <p className="mt-1 text-sm text-gray-500">
-            Upload a CSV file to preview your data.
+            Upload a CSV file to inspect your data.
           </p>
         </div>
 
@@ -106,90 +122,163 @@ export default function UploadDataset() {
             <X size={18} />
           </button>
         )}
+
       </div>
 
-      <label
-        htmlFor="csv-upload"
-        className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-10 text-center hover:bg-gray-50"
-      >
-        <Upload size={32} className="text-gray-500" />
+      {/* Upload Area */}
+      {!isUploaded && (
+        <label
+          htmlFor="csv-upload"
+          className="mt-6 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-10 text-center hover:bg-gray-50"
+        >
 
-        <p className="mt-4 font-medium">
-          Click to upload CSV
-        </p>
+          <Upload size={32} className="text-gray-500" />
 
-        <p className="mt-2 text-sm text-gray-500">
-          Maximum file size: 5 MB
-        </p>
+          <p className="mt-4 font-medium">
+            Click to upload CSV
+          </p>
 
-        <input
-          id="csv-upload"
-          type="file"
-          accept=".csv,text/csv"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-      </label>
+          <p className="mt-2 text-sm text-gray-500">
+            Maximum file size: 5 MB
+          </p>
 
+          <input
+            id="csv-upload"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+        </label>
+      )}
+
+      {/* Error */}
       {error && (
         <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
           {error}
         </p>
       )}
 
-      {fileName && !error && (
-        <div className="mt-6 flex items-center gap-3 rounded-lg bg-gray-50 p-4">
-          <FileText size={20} className="text-gray-500" />
+      {/* File Information */}
+      {isUploaded && !error && (
+        <>
+          <div className="mt-6 flex items-center gap-3 rounded-lg bg-gray-50 p-4">
 
-          <div>
-            <p className="text-sm font-medium">
-              {fileName}
-            </p>
+            <FileText size={20} className="text-gray-500" />
 
-            <p className="text-xs text-green-600">
-              File loaded successfully
-            </p>
+            <div>
+              <p className="text-sm font-medium">
+                {fileName}
+              </p>
+
+              <p className="text-xs text-green-600">
+                CSV parsed successfully
+              </p>
+            </div>
+
           </div>
-        </div>
-      )}
 
-      {previewRows.length > 0 && !error && (
-        <div className="mt-6">
-          <h3 className="font-semibold">
-            Data Preview
-          </h3>
+          {/* Metadata Summary */}
+          <div className="mt-6 grid gap-4 sm:grid-cols-3">
 
-          <p className="mt-1 text-sm text-gray-500">
-            Showing the first 5 data rows.
-          </p>
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-gray-500">
+                Total Records
+              </p>
 
-          <div className="mt-4 overflow-x-auto rounded-lg border">
-            <table className="w-full text-left text-sm">
-              <tbody>
-                {previewRows.map((row, rowIndex) => (
-                  <tr
-                    key={rowIndex}
-                    className={
-                      rowIndex === 0
-                        ? "bg-gray-100 font-semibold"
-                        : "border-t"
-                    }
-                  >
-                    {row.map((cell, cellIndex) => (
-                      <td
-                        key={cellIndex}
-                        className="whitespace-nowrap px-4 py-3"
+              <p className="mt-2 text-2xl font-bold">
+                {totalRecords.toLocaleString()}
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-gray-500">
+                Total Columns
+              </p>
+
+              <p className="mt-2 text-2xl font-bold">
+                {headers.length}
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
+              <p className="text-sm text-gray-500">
+                Preview Rows
+              </p>
+
+              <p className="mt-2 text-2xl font-bold">
+                {previewRows.length}
+              </p>
+            </div>
+
+          </div>
+
+          {/* Data Preview */}
+          <div className="mt-8">
+
+            <div>
+              <h3 className="font-semibold">
+                Data Preview
+              </h3>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Showing up to 10 records from your dataset.
+              </p>
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-lg border">
+
+              <table className="w-full text-left text-sm">
+
+                <thead className="bg-gray-100">
+                  <tr>
+                    {headers.map((header, index) => (
+                      <th
+                        key={`${header}-${index}`}
+                        className="whitespace-nowrap px-4 py-3 font-semibold"
                       >
-                        {cell.trim()}
-                      </td>
+                        {header}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody>
+
+                  {previewRows.map((row, rowIndex) => (
+                    <tr
+                      key={rowIndex}
+                      className="border-t hover:bg-gray-50"
+                    >
+
+                      {headers.map((_, columnIndex) => (
+                        <td
+                          key={columnIndex}
+                          className="whitespace-nowrap px-4 py-3 text-gray-600"
+                        >
+                          {row[columnIndex] ?? ""}
+                        </td>
+                      ))}
+
+                    </tr>
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+            <p className="mt-3 text-xs text-gray-500">
+              Preview only. The complete dataset is not stored
+              permanently or sent to a backend.
+            </p>
+
           </div>
-        </div>
+        </>
       )}
+
     </div>
   );
 }
