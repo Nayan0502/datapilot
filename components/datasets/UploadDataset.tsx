@@ -35,8 +35,10 @@ export default function UploadDataset() {
   const [profile, setProfile] =
     useState<DatasetProfileType | null>(null);
 
+  const [searchTerm, setSearchTerm] = useState("");
+
   const [qualityReport, setQualityReport] =
-  useState<DataQualityReportType | null>(null);
+    useState<DataQualityReportType | null>(null);
 
   function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>
@@ -52,6 +54,7 @@ export default function UploadDataset() {
     setIsUploaded(false);
     setProfile(null);
     setQualityReport(null);
+    setSearchTerm("");
 
     if (!file) {
       return;
@@ -145,7 +148,17 @@ export default function UploadDataset() {
     setError("");
     setIsUploaded(false);
     setProfile(null);
+    setQualityReport(null);
+    setSearchTerm("");
   }
+
+  const filteredRows = previewRows.filter((row) =>
+    row.some((value) =>
+      String(value ?? "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
+    )
+  );
 
   return (
     <>
@@ -273,23 +286,68 @@ export default function UploadDataset() {
             </div>
 
             {/* Data Preview */}
+            {/* Data Preview */}
             <div className="mt-8">
 
-              <div>
-                <h3 className="font-semibold">
-                  Data Preview
-                </h3>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-                <p className="mt-1 text-sm text-gray-500">
-                  Showing up to 10 records from your dataset.
-                </p>
+                <div>
+                  <h3 className="font-semibold">
+                    Data Preview
+                  </h3>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    Search and inspect your dataset records.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setSearchTerm("")}
+                  disabled={searchTerm === ""}
+                  className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Clear Search
+                </button>
+
               </div>
 
+              {/* Search Input */}
+              <div className="mt-4">
+
+                <input
+                  type="text"
+                  placeholder="Search records..."
+                  value={searchTerm}
+                  onChange={(event) =>
+                    setSearchTerm(event.target.value)
+                  }
+                  className="w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+              </div>
+
+              {/* Search Summary */}
+              <div className="mt-3 flex items-center justify-between">
+
+                <p className="text-xs text-gray-500">
+                  Showing {filteredRows.length} of {previewRows.length} preview rows
+                </p>
+
+                {searchTerm && (
+                  <p className="text-xs text-blue-600">
+                    Filter active
+                  </p>
+                )}
+
+              </div>
+
+              {/* Data Table */}
               <div className="mt-4 overflow-x-auto rounded-lg border">
 
                 <table className="w-full text-left text-sm">
 
                   <thead className="bg-gray-100">
+
                     <tr>
                       {headers.map((header, index) => (
                         <th
@@ -300,26 +358,48 @@ export default function UploadDataset() {
                         </th>
                       ))}
                     </tr>
+
                   </thead>
 
                   <tbody>
-                    {previewRows.map((row, rowIndex) => (
-                      <tr
-                        key={rowIndex}
-                        className="border-t hover:bg-gray-50"
-                      >
 
-                        {headers.map((_, columnIndex) => (
-                          <td
-                            key={columnIndex}
-                            className="whitespace-nowrap px-4 py-3 text-gray-600"
-                          >
-                            {row[columnIndex] ?? ""}
-                          </td>
-                        ))}
+                    {filteredRows.length > 0 ? (
 
+                      filteredRows.map((row, rowIndex) => (
+
+                        <tr
+                          key={rowIndex}
+                          className="border-t hover:bg-gray-50"
+                        >
+
+                          {headers.map((_, columnIndex) => (
+
+                            <td
+                              key={columnIndex}
+                              className="whitespace-nowrap px-4 py-3 text-gray-600"
+                            >
+                              {row[columnIndex] ?? ""}
+                            </td>
+
+                          ))}
+
+                        </tr>
+
+                      ))
+
+                    ) : (
+
+                      <tr>
+                        <td
+                          colSpan={headers.length}
+                          className="px-4 py-8 text-center text-sm text-gray-500"
+                        >
+                          No matching records found.
+                        </td>
                       </tr>
-                    ))}
+
+                    )}
+
                   </tbody>
 
                 </table>
@@ -339,12 +419,12 @@ export default function UploadDataset() {
 
       {/* Dataset Profile */}
       {profile && !error && (
-  <DatasetProfile profile={profile} />
-)}
+        <DatasetProfile profile={profile} />
+      )}
 
-{qualityReport && !error && (
-  <DataQualityReport report={qualityReport} />
-)}
+      {qualityReport && !error && (
+        <DataQualityReport report={qualityReport} />
+      )}
     </>
   );
 }
