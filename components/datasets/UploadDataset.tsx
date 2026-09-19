@@ -5,12 +5,22 @@ import { useState } from "react";
 import { Upload, FileText, X } from "lucide-react";
 import Papa from "papaparse";
 
+
 import {
   profileDataset,
   DatasetProfile as DatasetProfileType,
 } from "@/lib/dataProfiler";
 
 import DatasetProfile from "./DatasetProfile";
+
+import {
+  analyzeDataQuality,
+  DataQualityReport as DataQualityReportType,
+} from "@/lib/dataQuality";
+
+import DataQualityReport from "./DataQualityReport";
+
+
 
 type CsvRow = string[];
 
@@ -25,6 +35,9 @@ export default function UploadDataset() {
   const [profile, setProfile] =
     useState<DatasetProfileType | null>(null);
 
+  const [qualityReport, setQualityReport] =
+  useState<DataQualityReportType | null>(null);
+
   function handleFileChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
@@ -38,6 +51,7 @@ export default function UploadDataset() {
     setFileName("");
     setIsUploaded(false);
     setProfile(null);
+    setQualityReport(null);
 
     if (!file) {
       return;
@@ -97,6 +111,13 @@ export default function UploadDataset() {
 
         // Update profile state
         setProfile(datasetProfile);
+
+        const dataQualityReport = analyzeDataQuality(
+          csvHeaders,
+          dataRows
+        );
+
+        setQualityReport(dataQualityReport);
 
         // Update dataset information
         setFileName(file.name);
@@ -318,8 +339,12 @@ export default function UploadDataset() {
 
       {/* Dataset Profile */}
       {profile && !error && (
-        <DatasetProfile profile={profile} />
-      )}
+  <DatasetProfile profile={profile} />
+)}
+
+{qualityReport && !error && (
+  <DataQualityReport report={qualityReport} />
+)}
     </>
   );
 }
