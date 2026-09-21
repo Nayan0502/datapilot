@@ -1,3 +1,5 @@
+import BackendStatus from "@/components/dashboard/BackendStatus";
+
 export default function DashboardPage() {
   return (
     <main className="min-h-screen p-8">
@@ -10,6 +12,8 @@ export default function DashboardPage() {
           AI-powered data intelligence platform
         </p>
       </div>
+
+      <BackendStatus />
 
       <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 
