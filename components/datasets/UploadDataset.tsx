@@ -25,7 +25,13 @@ import DataQualityReport from "./DataQualityReport";
 
 type CsvRow = string[];
 
-export default function UploadDataset() {
+type UploadDatasetProps = {
+  onUploadComplete?: () => void;
+};
+
+export default function UploadDataset({
+  onUploadComplete,
+}: UploadDatasetProps) {
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [previewRows, setPreviewRows] = useState<CsvRow[]>([]);
@@ -135,13 +141,15 @@ export default function UploadDataset() {
         );
 
         try {
-          setIsSaving(true);
+  setIsSaving(true);
 
-          await uploadDataset(file);
+  await uploadDataset(file);
 
-          setIsUploaded(true);
+  setIsUploaded(true);
 
-        } catch (uploadError) {
+  onUploadComplete?.();
+
+} catch (uploadError) {
 
           setError(
             uploadError instanceof Error

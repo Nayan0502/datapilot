@@ -1,206 +1,321 @@
-import { Upload, Search, MoreHorizontal } from "lucide-react";
-import UploadDataset from "@/components/datasets/UploadDataset";
+"use client";
 
-const datasets = [
-  {
-    name: "Sales Data",
-    type: "CSV",
-    records: "12,450",
-    uploaded: "Sep 16, 2026",
-    status: "Processed",
-  },
-  {
-    name: "Customer Data",
-    type: "CSV",
-    records: "8,240",
-    uploaded: "Sep 15, 2026",
-    status: "Processed",
-  },
-  {
-    name: "Marketing Data",
-    type: "Excel",
-    records: "5,820",
-    uploaded: "Sep 14, 2026",
-    status: "Processing",
-  },
-];
+import { useCallback, useEffect, useState } from "react";
+import {
+  Database,
+  FileText,
+  RefreshCw,
+  Rows3,
+  Columns3,
+} from "lucide-react";
+
+import UploadDataset from "@/components/datasets/UploadDataset";
+import {
+  getDatasets,
+  Dataset,
+} from "@/lib/api";
+
 
 export default function DatasetsPage() {
+
+  const [datasets, setDatasets] =
+    useState<Dataset[]>([]);
+
+  const [isLoading, setIsLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [isRefreshing, setIsRefreshing] =
+    useState(false);
+
+
+  const loadDatasets = useCallback(
+    async (showRefreshing = false) => {
+
+      try {
+
+        if (showRefreshing) {
+          setIsRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        setError("");
+
+        const result =
+          await getDatasets();
+
+        setDatasets(
+          result.datasets
+        );
+
+      } catch (err) {
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load datasets."
+        );
+
+      } finally {
+
+        setIsLoading(false);
+        setIsRefreshing(false);
+
+      }
+    },
+    []
+  );
+
+
+  useEffect(() => {
+    loadDatasets();
+  }, [loadDatasets]);
+
+
   return (
-    <div>
+    <div className="space-y-8">
+
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
         <div>
-          <h1 className="text-3xl font-bold">
+
+          <h1 className="text-2xl font-bold">
             Datasets
           </h1>
 
-          <p className="mt-2 text-gray-500">
-            Upload and manage your datasets
+          <p className="mt-1 text-sm text-gray-500">
+            Upload, inspect and manage your datasets.
           </p>
+
         </div>
 
-        <button className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-          <Upload size={18} />
-          Upload Dataset
+
+        <button
+          onClick={() =>
+            loadDatasets(true)
+          }
+          disabled={isRefreshing}
+          className="flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+
+          <RefreshCw
+            size={16}
+            className={
+              isRefreshing
+                ? "animate-spin"
+                : ""
+            }
+          />
+
+          {isRefreshing
+            ? "Refreshing..."
+            : "Refresh"}
+
         </button>
-      </div>
-
-      {/* Stats */}
-      <div className="mt-8 grid gap-6 md:grid-cols-3">
-
-        <div className="rounded-xl border bg-white p-6">
-          <p className="text-sm text-gray-500">
-            Total Datasets
-          </p>
-
-          <p className="mt-2 text-3xl font-bold">
-            3
-          </p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-6">
-          <p className="text-sm text-gray-500">
-            Total Records
-          </p>
-
-          <p className="mt-2 text-3xl font-bold">
-            26,510
-          </p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-6">
-          <p className="text-sm text-gray-500">
-            Processed
-          </p>
-
-          <p className="mt-2 text-3xl font-bold">
-            2
-          </p>
-        </div>
 
       </div>
 
-      <UploadDataset />
 
-      {/* Dataset Table */}
-      <div className="mt-8 rounded-xl border bg-white">
+      {/* Upload */}
+      <UploadDataset
+        onUploadComplete={() =>
+          loadDatasets(true)
+        }
+      />
 
-        {/* Table Header */}
-        <div className="flex items-center justify-between border-b p-5">
+
+      {/* Error */}
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+
+          <p className="text-sm text-red-600">
+            {error}
+          </p>
+
+        </div>
+      )}
+
+
+      {/* Stored Dataset Section */}
+      <div className="rounded-xl border bg-white p-6">
+
+        <div className="flex items-center justify-between">
 
           <div>
-            <h2 className="font-semibold">
-              Your Datasets
+
+            <h2 className="text-lg font-semibold">
+              Stored Datasets
             </h2>
 
             <p className="mt-1 text-sm text-gray-500">
-              Manage your uploaded data
+              Datasets persisted by the DataPilot backend.
             </p>
+
           </div>
 
-          {/* Search */}
-          <div className="flex items-center gap-2 rounded-lg border px-3 py-2">
-            <Search size={18} className="text-gray-400" />
-
-            <input
-              type="text"
-              placeholder="Search datasets..."
-              className="w-48 text-sm outline-none"
-            />
-          </div>
+          <Database
+            size={22}
+            className="text-gray-500"
+          />
 
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
 
-          <table className="w-full text-left">
+        {/* Loading */}
+        {isLoading && (
+          <div className="mt-8 text-center">
 
-            <thead className="border-b bg-gray-50 text-sm text-gray-500">
-              <tr>
-                <th className="px-5 py-4 font-medium">
-                  Dataset
-                </th>
+            <p className="text-sm text-gray-500">
+              Loading datasets...
+            </p>
 
-                <th className="px-5 py-4 font-medium">
-                  Type
-                </th>
+          </div>
+        )}
 
-                <th className="px-5 py-4 font-medium">
-                  Records
-                </th>
 
-                <th className="px-5 py-4 font-medium">
-                  Uploaded
-                </th>
+        {/* Empty State */}
+        {!isLoading &&
+          datasets.length === 0 && (
+            <div className="mt-8 rounded-lg border border-dashed p-10 text-center">
 
-                <th className="px-5 py-4 font-medium">
-                  Status
-                </th>
+              <Database
+                size={36}
+                className="mx-auto text-gray-400"
+              />
 
-                <th className="px-5 py-4 font-medium">
-                  Actions
-                </th>
-              </tr>
-            </thead>
+              <h3 className="mt-4 font-semibold">
+                No datasets yet
+              </h3>
 
-            <tbody>
+              <p className="mt-1 text-sm text-gray-500">
+                Upload a CSV file to create your first dataset.
+              </p>
+
+            </div>
+          )}
+
+
+        {/* Dataset Cards */}
+        {!isLoading &&
+          datasets.length > 0 && (
+
+            <div className="mt-6 space-y-4">
 
               {datasets.map((dataset) => (
-                <tr
-                  key={dataset.name}
-                  className="border-b last:border-0 hover:bg-gray-50"
+
+                <div
+                  key={dataset.id}
+                  className="rounded-xl border p-5 transition hover:bg-gray-50"
                 >
 
-                  <td className="px-5 py-4 font-medium">
-                    {dataset.name}
-                  </td>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-                  <td className="px-5 py-4 text-sm text-gray-600">
-                    {dataset.type}
-                  </td>
+                    {/* Dataset Identity */}
+                    <div className="flex items-start gap-4">
 
-                  <td className="px-5 py-4 text-sm text-gray-600">
-                    {dataset.records}
-                  </td>
+                      <div className="rounded-lg bg-gray-100 p-3">
 
-                  <td className="px-5 py-4 text-sm text-gray-600">
-                    {dataset.uploaded}
-                  </td>
+                        <FileText
+                          size={22}
+                          className="text-gray-600"
+                        />
 
-                  <td className="px-5 py-4">
+                      </div>
 
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        dataset.status === "Processed"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {dataset.status}
-                    </span>
 
-                  </td>
+                      <div>
 
-                  <td className="px-5 py-4">
+                        <h3 className="font-semibold">
+                          {dataset.name}
+                        </h3>
 
-                    <button className="rounded-lg p-2 hover:bg-gray-100">
-                      <MoreHorizontal size={18} />
-                    </button>
+                        <p className="mt-1 text-sm text-gray-500">
+                          {dataset.file_name}
+                        </p>
 
-                  </td>
+                      </div>
 
-                </tr>
+                    </div>
+
+
+                    {/* Dataset Statistics */}
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+
+                      <div className="flex items-center gap-2">
+
+                        <Rows3
+                          size={17}
+                          className="text-gray-500"
+                        />
+
+                        <div>
+
+                          <p className="text-xs text-gray-500">
+                            Rows
+                          </p>
+
+                          <p className="text-sm font-semibold">
+                            {dataset.total_rows.toLocaleString()}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+                      <div className="flex items-center gap-2">
+
+                        <Columns3
+                          size={17}
+                          className="text-gray-500"
+                        />
+
+                        <div>
+
+                          <p className="text-xs text-gray-500">
+                            Columns
+                          </p>
+
+                          <p className="text-sm font-semibold">
+                            {dataset.total_columns.toLocaleString()}
+                          </p>
+
+                        </div>
+
+                      </div>
+
+
+                      <div>
+
+                        <p className="text-xs text-gray-500">
+                          Uploaded
+                        </p>
+
+                        <p className="text-sm font-semibold">
+                          {new Date(
+                            dataset.uploaded_at
+                          ).toLocaleDateString()}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
               ))}
 
-            </tbody>
-
-          </table>
-
-        </div>
+            </div>
+          )}
 
       </div>
+
     </div>
   );
 }
