@@ -26,3 +26,30 @@ export async function getDatasets() {
 
   return response.json();
 }
+
+export async function uploadDataset(
+  file: File
+) {
+  const formData = new FormData();
+
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/upload`,
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+
+    throw new Error(
+      errorData.detail ||
+        "Unable to upload dataset"
+    );
+  }
+
+  return response.json();
+}

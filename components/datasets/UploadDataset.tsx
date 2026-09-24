@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { Upload, FileText, X } from "lucide-react";
 import Papa from "papaparse";
+import { uploadDataset } from "@/lib/api";
 
 
 import {
@@ -31,6 +32,7 @@ export default function UploadDataset() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [error, setError] = useState("");
   const [isUploaded, setIsUploaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [profile, setProfile] =
     useState<DatasetProfileType | null>(null);
@@ -78,7 +80,7 @@ export default function UploadDataset() {
     Papa.parse<string[]>(file, {
       skipEmptyLines: true,
 
-      complete: (results) => {
+      complete: async (results) => {
         const rows = results.data as string[][];
 
         // Validate minimum rows
@@ -115,23 +117,43 @@ export default function UploadDataset() {
         // Update profile state
         setProfile(datasetProfile);
 
-        const dataQualityReport = analyzeDataQuality(
-          csvHeaders,
-          dataRows
+        const dataQualityReport =
+          analyzeDataQuality(
+            csvHeaders,
+            dataRows
+          );
+
+        setQualityReport(
+          dataQualityReport
         );
 
-        setQualityReport(dataQualityReport);
-
-        // Update dataset information
         setFileName(file.name);
         setHeaders(csvHeaders);
         setTotalRecords(dataRows.length);
+        setPreviewRows(
+          dataRows.slice(0, 10)
+        );
 
-        // Show only the first 10 records
-        setPreviewRows(dataRows.slice(0, 10));
+        try {
+          setIsSaving(true);
 
-        // Mark upload as successful
-        setIsUploaded(true);
+          await uploadDataset(file);
+
+          setIsUploaded(true);
+
+        } catch (uploadError) {
+
+          setError(
+            uploadError instanceof Error
+              ? uploadError.message
+              : "Unable to save dataset."
+          );
+
+        } finally {
+
+          setIsSaving(false);
+
+        }
       },
 
       error: () => {
@@ -243,8 +265,15 @@ export default function UploadDataset() {
                   {fileName}
                 </p>
 
-                <p className="text-xs text-green-600">
-                  CSV parsed successfully
+                <p
+                  className={`text-xs ${isSaving
+                      ? "text-blue-600"
+                      : "text-green-600"
+                    }`}
+                >
+                  {isSaving
+                    ? "Saving dataset..."
+                    : "CSV saved successfully"}
                 </p>
               </div>
 
