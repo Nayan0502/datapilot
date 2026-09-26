@@ -12,7 +12,13 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { getDataset, Dataset } from "@/lib/api";
+import {
+  getDataset,
+  getDatasetPreview,
+  Dataset,
+  DatasetPreview,
+} from "@/lib/api";
+
 
 type DatasetDetailsPageProps = {
   params: Promise<{
@@ -28,34 +34,59 @@ export default function DatasetDetailsPage({
   const [dataset, setDataset] = useState<Dataset | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [preview, setPreview] = useState<DatasetPreview | null>(null);
+const [isPreviewLoading, setIsPreviewLoading] = useState(true);
+const [previewError, setPreviewError] = useState("");
 
-  useEffect(() => {
-    async function loadDataset() {
+
+ useEffect(() => {
+  async function loadDataset() {
+    try {
+      setIsLoading(true);
+      setError("");
+      setPreviewError("");
+
+      const datasetId = Number(id);
+
+      if (Number.isNaN(datasetId)) {
+        throw new Error("Invalid dataset ID.");
+      }
+
+      const data = await getDataset(datasetId);
+
+      setDataset(data);
+
       try {
-        setIsLoading(true);
-        setError("");
+        setIsPreviewLoading(true);
 
-        const datasetId = Number(id);
+        const previewData = await getDatasetPreview(
+          datasetId,
+          20
+        );
 
-        if (Number.isNaN(datasetId)) {
-          throw new Error("Invalid dataset ID.");
-        }
-
-        const data = await getDataset(datasetId);
-        setDataset(data);
-      } catch (loadError) {
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Unable to load dataset."
+        setPreview(previewData);
+      } catch (previewLoadError) {
+        setPreviewError(
+          previewLoadError instanceof Error
+            ? previewLoadError.message
+            : "Unable to load dataset preview."
         );
       } finally {
-        setIsLoading(false);
+        setIsPreviewLoading(false);
       }
+    } catch (loadError) {
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Unable to load dataset."
+      );
+    } finally {
+      setIsLoading(false);
     }
+  }
 
-    loadDataset();
-  }, [id]);
+  loadDataset();
+}, [id]);
 
   if (isLoading) {
     return (
@@ -264,29 +295,96 @@ export default function DatasetDetailsPage({
         </div>
       </div>
 
-      {/* Analysis placeholder */}
+      {/* Dataset Preview */}
       <div className="rounded-xl border bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Dataset Analysis
-        </h2>
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Dataset Preview
+            </h2>
 
-        <p className="mt-1 text-sm text-gray-500">
-          Detailed profiling, data quality checks, and
-          analytics will appear here.
-        </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Showing the first 20 rows from the stored dataset.
+            </p>
+          </div>
 
-        <div className="mt-6 rounded-lg border border-dashed bg-gray-50 p-10 text-center">
-          <Database className="mx-auto h-10 w-10 text-gray-400" />
-
-          <p className="mt-3 font-medium text-gray-700">
-            Analysis coming next
-          </p>
-
-          <p className="mt-1 text-sm text-gray-500">
-            The next step is to display the actual stored CSV
-            data and connect the analysis engine.
-          </p>
+          {preview && (
+            <div className="rounded-lg bg-gray-100 px-3 py-2 text-xs text-gray-600">
+              {preview.total_rows.toLocaleString()} total rows
+            </div>
+          )}
         </div>
+
+        {isPreviewLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-7 w-7 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600" />
+
+            <span className="ml-3 text-sm text-gray-500">
+              Loading dataset...
+            </span>
+          </div>
+        ) : previewError ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm text-red-700">
+              {previewError}
+            </p>
+          </div>
+        ) : preview && preview.rows.length > 0 ? (
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="whitespace-nowrap border-b px-4 py-3 text-left font-semibold text-gray-700">
+                    #
+                  </th>
+
+                  {preview.headers.map((header, index) => (
+                    <th
+                      key={`${header}-${index}`}
+                      className="whitespace-nowrap border-b px-4 py-3 text-left font-semibold text-gray-700"
+                    >
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                {preview.rows.map((row, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    className="transition hover:bg-gray-50"
+                  >
+                    <td className="whitespace-nowrap border-b px-4 py-3 font-medium text-gray-500">
+                      {rowIndex + 1}
+                    </td>
+
+                    {preview.headers.map((_, columnIndex) => (
+                      <td
+                        key={columnIndex}
+                        className="max-w-xs whitespace-nowrap border-b px-4 py-3 text-gray-700"
+                      >
+                        {row[columnIndex] ?? "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed bg-gray-50 p-10 text-center">
+            <Database className="mx-auto h-10 w-10 text-gray-400" />
+
+            <p className="mt-3 font-medium text-gray-700">
+              No data available
+            </p>
+
+            <p className="mt-1 text-sm text-gray-500">
+              This dataset does not contain any preview rows.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

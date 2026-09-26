@@ -119,6 +119,84 @@ def get_dataset(dataset_id: int):
         "dataset": dataset,
     }
 
+@app.get("/api/datasets/{dataset_id}/preview")
+def get_dataset_preview(dataset_id: int, limit: int = 20):
+    dataset = get_dataset_by_id(dataset_id)
+
+    if dataset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found."
+        )
+
+    if limit < 1:
+        raise HTTPException(
+            status_code=400,
+            detail="Limit must be greater than 0."
+        )
+
+    if limit > 100:
+        limit = 100
+
+    stored_file_name = dataset["stored_file_name"]
+    stored_file_path = UPLOAD_DIRECTORY / stored_file_name
+
+    if not stored_file_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="Stored dataset file not found."
+        )
+
+    try:
+        with open(
+            stored_file_path,
+            "r",
+            encoding="utf-8-sig",
+            newline=""
+        ) as csv_file:
+
+            csv_reader = csv.reader(csv_file)
+
+            headers = next(csv_reader, None)
+
+            if not headers:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Dataset does not contain a valid header."
+                )
+
+            rows = []
+
+            for row in csv_reader:
+                rows.append(row)
+
+                if len(rows) >= limit:
+                    break
+
+            return {
+                "dataset_id": dataset_id,
+                "headers": headers,
+                "rows": rows,
+                "limit": limit,
+                "total_rows": dataset["total_rows"],
+            }
+
+    except HTTPException:
+        raise
+
+    except UnicodeDecodeError:
+        raise HTTPException(
+            status_code=400,
+            detail="Unable to decode dataset."
+        )
+
+    except Exception as error:
+        print(f"Dataset preview error: {error}")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to read dataset."
+        )
 
 # --------------------------------------------------
 # Upload dataset

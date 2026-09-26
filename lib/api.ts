@@ -106,3 +106,33 @@ export async function getDataset(
 
   return result.dataset;
 }
+
+export type DatasetPreview = {
+  dataset_id: number;
+  headers: string[];
+  rows: string[][];
+  limit: number;
+  total_rows: number;
+};
+
+export async function getDatasetPreview(
+  datasetId: number,
+  limit = 20
+): Promise<DatasetPreview> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/preview?limit=${limit}`,
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+
+    throw new Error(
+      errorData.detail || "Unable to fetch dataset preview"
+    );
+  }
+
+  return response.json();
+}
