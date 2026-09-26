@@ -104,3 +104,31 @@ def get_all_datasets():
     connection.close()
 
     return datasets
+
+def get_dataset_by_id(dataset_id: int):
+    connection = get_connection()
+
+    cursor = connection.execute(
+        """
+        SELECT
+            id,
+            name,
+            file_name,
+            stored_file_name,
+            total_rows,
+            total_columns,
+            uploaded_at
+        FROM datasets
+        WHERE id = ?
+        """,
+        (dataset_id,),
+    )
+
+    dataset = cursor.fetchone()
+
+    connection.close()
+
+    if dataset is None:
+        return None
+
+    return dict(dataset)

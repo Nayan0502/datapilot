@@ -15,6 +15,8 @@ import {
   Dataset,
 } from "@/lib/api";
 
+import Link from "next/link";
+
 
 export default function DatasetsPage() {
 
@@ -206,60 +208,31 @@ export default function DatasetsPage() {
             <div className="mt-6 space-y-4">
 
               {datasets.map((dataset) => (
+                <div key={dataset.id} className="space-y-3">
+                  <div className="rounded-xl border p-5 transition hover:bg-gray-50">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 
-                <div
-                  key={dataset.id}
-                  className="rounded-xl border p-5 transition hover:bg-gray-50"
-                >
+                      {/* Dataset Identity */}
+                      <div className="flex items-start gap-4">
 
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="rounded-lg bg-gray-100 p-3">
 
-                    {/* Dataset Identity */}
-                    <div className="flex items-start gap-4">
+                          <FileText
+                            size={22}
+                            className="text-gray-600"
+                          />
 
-                      <div className="rounded-lg bg-gray-100 p-3">
+                        </div>
 
-                        <FileText
-                          size={22}
-                          className="text-gray-600"
-                        />
-
-                      </div>
-
-
-                      <div>
-
-                        <h3 className="font-semibold">
-                          {dataset.name}
-                        </h3>
-
-                        <p className="mt-1 text-sm text-gray-500">
-                          {dataset.file_name}
-                        </p>
-
-                      </div>
-
-                    </div>
-
-
-                    {/* Dataset Statistics */}
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-
-                      <div className="flex items-center gap-2">
-
-                        <Rows3
-                          size={17}
-                          className="text-gray-500"
-                        />
 
                         <div>
 
-                          <p className="text-xs text-gray-500">
-                            Rows
-                          </p>
+                          <h3 className="font-semibold">
+                            {dataset.name}
+                          </h3>
 
-                          <p className="text-sm font-semibold">
-                            {dataset.total_rows.toLocaleString()}
+                          <p className="mt-1 text-sm text-gray-500">
+                            {dataset.file_name}
                           </p>
 
                         </div>
@@ -267,51 +240,86 @@ export default function DatasetsPage() {
                       </div>
 
 
-                      <div className="flex items-center gap-2">
+                      {/* Dataset Statistics */}
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
 
-                        <Columns3
-                          size={17}
-                          className="text-gray-500"
-                        />
+                        <div className="flex items-center gap-2">
+
+                          <Rows3
+                            size={17}
+                            className="text-gray-500"
+                          />
+
+                          <div>
+
+                            <p className="text-xs text-gray-500">
+                              Rows
+                            </p>
+
+                            <p className="text-sm font-semibold">
+                              {dataset.total_rows.toLocaleString()}
+                            </p>
+
+                          </div>
+
+                        </div>
+
+
+                        <div className="flex items-center gap-2">
+
+                          <Columns3
+                            size={17}
+                            className="text-gray-500"
+                          />
+
+                          <div>
+
+                            <p className="text-xs text-gray-500">
+                              Columns
+                            </p>
+
+                            <p className="text-sm font-semibold">
+                              {dataset.total_columns.toLocaleString()}
+                            </p>
+
+                          </div>
+
+                        </div>
+
 
                         <div>
 
                           <p className="text-xs text-gray-500">
-                            Columns
+                            Uploaded
                           </p>
 
                           <p className="text-sm font-semibold">
-                            {dataset.total_columns.toLocaleString()}
+                            {new Date(
+                              dataset.uploaded_at
+                            ).toLocaleDateString()}
                           </p>
 
                         </div>
 
                       </div>
 
-
-                      <div>
-
-                        <p className="text-xs text-gray-500">
-                          Uploaded
-                        </p>
-
-                        <p className="text-sm font-semibold">
-                          {new Date(
-                            dataset.uploaded_at
-                          ).toLocaleDateString()}
-                        </p>
-
-                      </div>
-
                     </div>
-
                   </div>
 
+                  <Link
+                    href={`/datasets/${dataset.id}`}
+                    className="flex items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-100"
+                  >
+                    View Dataset →
+                  </Link>
                 </div>
-
               ))}
 
+             
+
             </div>
+
+            
           )}
 
       </div>

@@ -20,8 +20,8 @@ from database import (
     initialize_database,
     create_dataset,
     get_all_datasets,
+    get_dataset_by_id,
 )
-
 
 app = FastAPI(
     title="DataPilot API",
@@ -102,6 +102,21 @@ def get_datasets():
     return {
         "datasets": datasets,
         "count": len(datasets),
+    }
+    
+@app.get("/api/datasets/{dataset_id}")
+def get_dataset(dataset_id: int):
+
+    dataset = get_dataset_by_id(dataset_id)
+
+    if dataset is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Dataset not found.",
+        )
+
+    return {
+        "dataset": dataset,
     }
 
 

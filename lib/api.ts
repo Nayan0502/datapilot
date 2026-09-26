@@ -79,3 +79,30 @@ export async function uploadDataset(
 
   return response.json();
 }
+
+export async function getDataset(
+  datasetId: number
+): Promise<Dataset> {
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}`,
+    {
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData =
+      await response.json();
+
+    throw new Error(
+      errorData.detail ||
+        "Unable to fetch dataset"
+    );
+  }
+
+  const result =
+    await response.json();
+
+  return result.dataset;
+}
